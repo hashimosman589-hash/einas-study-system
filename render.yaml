@@ -1,0 +1,49 @@
+# Render Blueprint — نشر نظام إيناس تلقائيًا على منصة Render
+# ملاحظة: جزء الأساس مجاني، لكن بقاء قاعدة البيانات (SQLite) يتطلب Persistent Disk
+# وهو متاح في خطة Starter (نحو 7$/شهر) أو plan: starter أدناه.
+services:
+  - type: web
+    name: einas-study-system
+    runtime: node
+    plan: starter
+    region: frankfurt
+    buildCommand: npm install --prefix server && npm install --prefix client && npm run build --prefix client
+    startCommand: npm run start --prefix server
+    healthCheckPath: /api/health
+    disk:
+      name: einas-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: PORT
+        value: "5000"
+      - key: DATA_DIR
+        value: /var/data
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES
+        value: "7d"
+      - key: AI_API_KEY
+        sync: false
+      - key: AI_BASE_URL
+        value: https://api.groq.com/openai/v1
+      - key: AI_MODEL
+        value: qwen/qwen3.8-27b
+      - key: AI_PIPELINE_CONCURRENCY
+        value: "2"
+      - key: AI_TPM_LIMIT
+        value: "8000"
+      - key: AI_VALIDATE_MIN
+        value: "999"
+      - key: AI_QUESTIONS_PER_PART
+        value: "5"
+      - key: AI_WORKER_CONCURRENCY
+        value: "2"
+      - key: AI_JOB_MAX_ATTEMPTS
+        value: "3"
+      - key: AI_JOB_RETRY_BASE_MS
+        value: "3000"
+      - key: ADMIN_EMAILS
+        sync: false

@@ -1,0 +1,14 @@
+node_modules/
+dist/
+server/data/
+server/.env
+.env
+.env.local
+*.log
+srv.*.txt
+*.pid
+.DS_Store
+Thumbs.db
+server/eng.traineddata
+server/lec.txt
+server/raster_test.mjs

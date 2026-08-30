@@ -1,0 +1,196 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #eef2ff;
+  --card: #ffffff;
+  --text: #101730;
+  --muted: #5b6b8c;
+  --border: #e2e8f0;
+}
+
+.dark {
+  --bg: #0b1023;
+  --card: #151d3b;
+  --text: #e6eaf5;
+  --muted: #93a1bd;
+  --border: #2a3560;
+}
+
+html {
+  direction: rtl;
+}
+
+body {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(1200px 600px at 100% 0%, rgba(51, 102, 255, 0.14), transparent 60%),
+    radial-gradient(1000px 500px at 0% 100%, rgba(139, 92, 246, 0.12), transparent 60%),
+    radial-gradient(800px 400px at 50% 120%, rgba(16, 185, 129, 0.08), transparent 60%);
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: 'Cairo', system-ui, sans-serif;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.dark body {
+  background-image:
+    radial-gradient(1200px 600px at 100% 0%, rgba(51, 102, 255, 0.18), transparent 60%),
+    radial-gradient(1000px 500px at 0% 100%, rgba(139, 92, 246, 0.16), transparent 60%),
+    radial-gradient(900px 450px at 50% 120%, rgba(16, 185, 129, 0.1), transparent 60%);
+}
+
+::selection {
+  background: rgba(51, 102, 255, 0.22);
+}
+
+/* كرات زخرفية عائمة خلفية */
+.bg-blobs::before,
+.bg-blobs::after {
+  content: '';
+  position: fixed;
+  border-radius: 9999px;
+  filter: blur(70px);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.55;
+}
+.bg-blobs::before {
+  width: 420px;
+  height: 420px;
+  top: -120px;
+  inset-inline-end: -120px;
+  background: radial-gradient(circle, rgba(51, 102, 255, 0.35), transparent 70%);
+  animation: float 9s ease-in-out infinite;
+}
+.bg-blobs::after {
+  width: 380px;
+  height: 380px;
+  bottom: -130px;
+  inset-inline-start: -130px;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.32), transparent 70%);
+  animation: float 11s ease-in-out infinite reverse;
+}
+
+.bg-app { background-color: transparent; }
+.bg-card { background-color: var(--card); }
+.text-main { color: var(--text); }
+.text-muted { color: var(--muted); }
+.border-soft { border-color: var(--border); }
+.divide-soft > :not([hidden]) ~ :not([hidden]) { border-color: var(--border); }
+
+/* نص متدرج */
+.gradient-text {
+  background: linear-gradient(90deg, #3366ff, #8b5cf6 55%, #06b6d4);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* تدفق بطاقة عند المرور */
+.lift {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.lift:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 34px -12px rgba(15, 23, 42, 0.22);
+  border-color: rgba(51, 102, 255, 0.35);
+}
+.dark .lift:hover {
+  box-shadow: 0 14px 34px -12px rgba(0, 0, 0, 0.65);
+}
+
+/* شريط علوي متدرج للبطاقات */
+.gradient-top {
+  position: relative;
+  overflow: hidden;
+}
+.gradient-top::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  inset-inline: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #3366ff, #8b5cf6 55%, #06b6d4);
+}
+
+/* توهج عند التركيز */
+.focus-glow:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(51, 102, 255, 0.3), 0 4px 16px -4px rgba(51, 102, 255, 0.45);
+}
+
+/* شريط تمرير متدرج */
+.scrollbar-thin::-webkit-scrollbar { width: 7px; height: 7px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #94a3b8, #64748b);
+  border-radius: 10px;
+}
+.dark .scrollbar-thin::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #475569, #334155);
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #3366ff, #8b5cf6);
+}
+
+/* حشوة متحركة تحميلية */
+.shimmer {
+  background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.55) 50%, transparent 65%);
+  background-size: 200% 100%;
+  animation: shimmer 2.2s linear infinite;
+}
+.dark .shimmer {
+  background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.09) 50%, transparent 65%);
+  background-size: 200% 100%;
+  animation: shimmer 2.2s linear infinite;
+}
+
+/* زر الملف */
+input[type="file"] {
+  cursor: pointer;
+}
+input[type="file"]::-webkit-file-upload-button {
+  background: linear-gradient(135deg, #3366ff, #8b5cf6);
+  color: #fff;
+  border: none;
+  padding: 9px 16px;
+  border-radius: 10px;
+  margin-inline-start: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 700;
+  box-shadow: 0 4px 12px -4px rgba(51, 102, 255, 0.5);
+}
+input[type="file"]:hover::-webkit-file-upload-button {
+  filter: brightness(1.08);
+}
+
+/* تصدير PDF عبر نافذة الطباعة */
+@media print {
+  aside, header, .hide-print {
+    display: none !important;
+  }
+  main {
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+  body {
+    background: #fff !important;
+  }
+  .no-print-app {
+    display: block !important;
+  }
+}
+.perspective-1000 {
+  perspective: 1000px;
+}
+.flip-in {
+  animation: flipIn 0.35s ease-out;
+}
+@keyframes flipIn {
+  from { opacity: 0; transform: rotateY(-12deg) translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
