@@ -16,7 +16,9 @@ const AI_API_KEY = process.env.AI_API_KEY || '';
 const AI_BASE_URL = process.env.AI_BASE_URL || 'https://api.openai.com/v1';
 const AI_MODEL = process.env.AI_MODEL || 'gpt-4o-mini';
 
-export const ENGINE_CHUNK_SIZE = 8000; // أحرف لكل جزء قراءة — أكبر قدر من المحتوى لكل استدعاء قراءة (كل قراءة تنفرد بنافذة على الطبقة المجانية أصلًا، فالأجزاء الأكبر لا تكلف وقتًا إضافيًا بل تقلّل عددها)
+// أحرف لكل جزء قراءة — قابل للضبط من .env لتوازن سرعة/سقف توكنات.
+// كلما زاد السقف (TPM) للنموذج استطعنا تكبير الجزء لخفض عدد الأجزاء وبالتالي نافذات انتظار السقف.
+export const ENGINE_CHUNK_SIZE = Math.max(4000, Math.min(60000, parseInt(process.env.AI_CHUNK_SIZE || '8000', 10) || 8000));
 const CHUNK_OVERLAP = 700; // تداخل بين الأجزاء لضمان عدم فقدان معلومات حدود القسم
 
 // التوازي عبر الأجزاء قابل للضبط في .env (AI_PIPELINE_CONCURRENCY) — أقصى 4.
