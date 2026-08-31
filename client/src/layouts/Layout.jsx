@@ -56,7 +56,7 @@ export default function Layout() {
       </nav>
 
       <div className="px-3 pt-1 pb-2">
-        <div className="text-[9px] text-muted font-semibold text-center truncate" dir="ltr">Developed by Eg HASHIM OSMAN — VERSION : V05</div>
+        <div className="text-[7.5px] text-muted/80 font-normal text-center truncate tracking-wide" dir="ltr">Developed by HO</div>
       </div>
 
       <div className="p-3 border-t border-soft">

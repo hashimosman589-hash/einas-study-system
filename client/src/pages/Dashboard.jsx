@@ -27,20 +27,21 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       {/* لافتة ترحيبية متدرجة */}
-      <div className="rounded-2xl bg-gradient-to-l from-brand-600 via-brand-500 to-violet-600 text-white p-6 sm:p-8 relative overflow-hidden shadow-glow">
-        <div className="absolute -top-10 -left-10 w-48 h-48 rounded-full bg-white/10 blur-2xl" />
-        <div className="absolute -bottom-16 right-10 w-56 h-56 rounded-full bg-cyan-300/20 blur-2xl" />
+      <div className="rounded-2xl gradient-animated text-white p-6 sm:p-8 relative overflow-hidden shadow-glow shine glow-pulse">
+        <div className="absolute -top-10 -left-10 w-48 h-48 rounded-full bg-white/15 blur-2xl orb" />
+        <div className="absolute -bottom-16 right-10 w-56 h-56 rounded-full bg-cyan-300/25 blur-2xl orb" style={{ animationDelay: '1.5s' }} />
+        <div className="absolute top-8 right-1/4 w-24 h-24 rounded-full bg-fuchsia-400/25 blur-2xl orb" style={{ animationDelay: '3s' }} />
         <div className="relative">
-          <h1 className="text-2xl sm:text-3xl font-black">لوحة التحكم</h1>
-          <p className="mt-1 opacity-90 text-sm sm:text-base">نظرة عامة على تقدمك الدراسي وتحليل ذكاء نظام إيناس — تابع، اختبر، وتفوّق.</p>
+          <h1 className="text-2xl sm:text-3xl font-black drop-shadow">لوحة التحكم</h1>
+          <p className="mt-1 opacity-95 text-sm sm:text-base">نظرة عامة على تقدمك الدراسي وتحليل ذكاء نظام إيناس — تابع، اختبر، وتفوّق.</p>
           <div className="flex flex-wrap gap-3 mt-5">
-            <Link to="/exams" className="inline-flex items-center gap-2 rounded-xl bg-white text-brand-700 px-4 py-2.5 text-sm font-bold hover:bg-brand-50 transition shadow-soft">
+            <Link to="/exams" className="inline-flex items-center gap-2 rounded-xl bg-white text-brand-700 px-4 py-2.5 text-sm font-bold hover:scale-[1.03] hover:bg-brand-50 transition shadow-soft">
               <Icon name="quiz" className="w-4 h-4" /> اختبر الآن
             </Link>
-            <Link to="/study" className="inline-flex items-center gap-2 rounded-xl bg-white text-brand-700 px-4 py-2.5 text-sm font-bold hover:bg-brand-50 transition shadow-soft">
+            <Link to="/study" className="inline-flex items-center gap-2 rounded-xl bg-white text-brand-700 px-4 py-2.5 text-sm font-bold hover:scale-[1.03] hover:bg-brand-50 transition shadow-soft">
               <Icon name="calendar" className="w-4 h-4" /> مذاكرة اليوم
             </Link>
-            <Link to="/lectures" className="inline-flex items-center gap-2 rounded-xl bg-white/15 text-white px-4 py-2.5 text-sm font-bold hover:bg-white/25 transition backdrop-blur">
+            <Link to="/lectures" className="inline-flex items-center gap-2 rounded-xl bg-white/15 text-white px-4 py-2.5 text-sm font-bold hover:bg-white/25 hover:scale-[1.03] transition backdrop-blur">
               <Icon name="upload" className="w-4 h-4" /> ارفع محاضرة
             </Link>
           </div>
@@ -51,7 +52,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((s) => (
           <Card key={s.key} className="p-5 lift">
-            <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br text-white ${s.chip} mb-3`}>
+            <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br text-white ${s.chip} mb-3 glow-pulse`}>
               <Icon name={s.icon} className="w-6 h-6" />
             </div>
             <div className="text-3xl font-black text-main">{data[s.key] ?? 0}{s.key === 'avgScore' ? '%' : ''}</div>
