@@ -3,6 +3,7 @@ import { api } from '../api/client.js';
 import { Card, Button, Badge, Spinner, Input, Progress } from '../components/ui.jsx';
 import { Icon } from '../components/Icons.jsx';
 import TranslationBox from '../components/TranslationBox.jsx';
+import { useAuth } from '../lib/auth.jsx';
 
 const STAGES = [
   { key: 'validating', label: 'التحقق من الملف' },
@@ -15,6 +16,7 @@ const STAGES = [
 const STAGE_RANK = Object.fromEntries(STAGES.map((s, i) => [s.key, i + 1]));
 
 export default function Lectures() {
+  const { user } = useAuth();
   const [lectures, setLectures] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -314,7 +316,8 @@ export default function Lectures() {
 
       {/* قائمة المحاضرات */}
       <div>
-        <h2 className="font-bold text-main mb-3">المحاضرات المرفوعة ({lectures.length})</h2>
+        <h2 className="font-bold text-main mb-1">المكتبة المشتركة للمحاضرات ({lectures.length})</h2>
+        <p className="text-xs text-muted mb-3">كل المحاضرات متاحة لجميع المستخدمين. يحذف المحاضرات المدير فقط من هذه القائمة.</p>
         {loading ? (
           <div className="flex justify-center py-10"><Spinner className="w-8 h-8 text-brand-600" /></div>
         ) : lectures.length ? (
@@ -331,11 +334,13 @@ export default function Lectures() {
                       <div className="text-xs text-muted truncate">{l.file_name}</div>
                     </div>
                   </div>
-                  <button onClick={() => remove(l.id)} className="text-muted hover:text-red-500 shrink-0" title="حذف">
-                    <Icon name="trash" className="w-5 h-5" />
-                  </button>
+                  {user?.role === 'admin' && (
+                    <button onClick={() => remove(l.id)} className="text-muted hover:text-red-500 shrink-0" title="حذف (مدير)">
+                      <Icon name="trash" className="w-5 h-5" />
+                    </button>
+                  )}
                 </div>
-                <div className="mt-3 flex items-center gap-2">
+                <div className="mt-3 flex items-center gap-2 flex-wrap">
                   {l.status === 'ready' ? (
                     <Badge tone="green">محلّلة ✓</Badge>
                   ) : l.status === 'processing' ? (
@@ -348,7 +353,10 @@ export default function Lectures() {
                   {l.subject && <Badge tone="blue">{l.subject}</Badge>}
                   <Badge tone="slate">{l.file_type}</Badge>
                 </div>
-                <div className="text-xs text-muted mt-2">{l.created_at}</div>
+                {l.owner_name && (
+                  <div className="text-xs text-muted mt-2">رُفعت بواسطة: <b className="text-brand-600 dark:text-brand-400">{l.owner_name}</b></div>
+                )}
+                <div className="text-xs text-muted mt-1">{l.created_at}</div>
                 <TranslationBox
                   parts={[l.title, l.subject ? `المادة: ${l.subject}` : '', l.file_name].filter(Boolean)}
                   className="mt-3"

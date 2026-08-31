@@ -40,8 +40,8 @@ function buildTasksForDay(userId, dayIdx) {
     if (Math.min(i, WINDOW - 1) !== dayIdx) return;
     tasks.push({ id: `rev:${s.topic}`, kind: 'review', topic: s.topic, wrong: s.wrong, label: `راجع «${s.topic}»`, link: `/review?start=${encodeURIComponent(s.topic)}` });
   });
-  // مادة جديدة: محاضرة واحدة مذاكرة يوميًا (توزيع دائري)
-  const ready = db.prepare("SELECT * FROM lectures WHERE user_id = ? AND status = 'ready' ORDER BY created_at DESC").all(userId);
+  // مادة جديدة: محاضرة واحدة مذاكرة يوميًا (توزيع دائري) من المكتبة المشتركة
+  const ready = db.prepare("SELECT * FROM lectures WHERE status = 'ready' ORDER BY created_at DESC").all();
   ready.forEach((lec, i) => {
     if (i % WINDOW === dayIdx) {
       tasks.push({ id: `study:${lec.id}`, kind: 'study', lectureId: lec.id, label: `ادرس ملخص «${lec.title}»`, link: '/summaries' });

@@ -25,9 +25,11 @@ html {
 body {
   background-color: var(--bg);
   background-image:
-    radial-gradient(1200px 600px at 100% 0%, rgba(51, 102, 255, 0.14), transparent 60%),
-    radial-gradient(1000px 500px at 0% 100%, rgba(139, 92, 246, 0.12), transparent 60%),
-    radial-gradient(800px 400px at 50% 120%, rgba(16, 185, 129, 0.08), transparent 60%);
+    radial-gradient(1200px 600px at 100% 0%, rgba(51, 102, 255, 0.16), transparent 60%),
+    radial-gradient(1000px 500px at 0% 100%, rgba(139, 92, 246, 0.14), transparent 60%),
+    radial-gradient(800px 400px at 50% 120%, rgba(16, 185, 129, 0.10), transparent 60%),
+    radial-gradient(600px 300px at 20% 20%, rgba(6, 182, 212, 0.10), transparent 60%),
+    radial-gradient(500px 260px at 85% 70%, rgba(244, 63, 94, 0.07), transparent 60%);
   background-attachment: fixed;
   color: var(--text);
   font-family: 'Cairo', system-ui, sans-serif;
@@ -36,9 +38,11 @@ body {
 
 .dark body {
   background-image:
-    radial-gradient(1200px 600px at 100% 0%, rgba(51, 102, 255, 0.18), transparent 60%),
-    radial-gradient(1000px 500px at 0% 100%, rgba(139, 92, 246, 0.16), transparent 60%),
-    radial-gradient(900px 450px at 50% 120%, rgba(16, 185, 129, 0.1), transparent 60%);
+    radial-gradient(1200px 600px at 100% 0%, rgba(51, 102, 255, 0.22), transparent 60%),
+    radial-gradient(1000px 500px at 0% 100%, rgba(139, 92, 246, 0.20), transparent 60%),
+    radial-gradient(900px 450px at 50% 120%, rgba(16, 185, 129, 0.13), transparent 60%),
+    radial-gradient(600px 320px at 15% 15%, rgba(6, 182, 212, 0.14), transparent 60%),
+    radial-gradient(520px 280px at 85% 75%, rgba(244, 63, 94, 0.10), transparent 60%);
 }
 
 ::selection {
@@ -220,20 +224,94 @@ input[type="file"]:hover::-webkit-file-upload-button {
   filter: brightness(1.08);
 }
 
-/* تصدير PDF عبر نافذة الطباعة */
+/* تصدير PDF عبر نافذة الطباعة — تحسين التناسق والخطوط وتقسيم الصفحات */
 @media print {
-  aside, header, .hide-print {
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  html {
+    font-size: 15px;
+  }
+  body {
+    background: #ffffff !important;
+    color: #1a2333 !important;
+    font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif !important;
+  }
+  aside,
+  header,
+  .hide-print,
+  .bg-blobs::before,
+  .bg-blobs::after,
+  .gradient-animated,
+  .shine::after,
+  .glow-pulse,
+  .orb {
     display: none !important;
   }
   main {
     overflow: visible !important;
     padding: 0 !important;
+    max-width: 100% !important;
   }
-  body {
-    background: #fff !important;
+  main * {
+    box-shadow: none !important;
+    backdrop-filter: none !important;
   }
   .no-print-app {
     display: block !important;
+  }
+  .bg-app {
+    background: #ffffff !important;
+    background-image: none !important;
+  }
+  .bg-card,
+  .dark .bg-card,
+  .dark body {
+    background: #ffffff !important;
+    color: #1a2333 !important;
+    border-color: #d5dcec !important;
+  }
+  .text-main,
+  .dark .text-main {
+    color: #1a2333 !important;
+  }
+  .text-muted,
+  .dark .text-muted {
+    color: #4b5a75 !important;
+  }
+  .gradient-text {
+    background: #3b6cff !important;
+    -webkit-text-fill-color: #3b6cff;
+    color: #3b6cff !important;
+  }
+  h1, h2, h3, h4, .font-black, .font-extrabold, .font-bold {
+    font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif !important;
+  }
+  h1 { font-size: 24px !important; }
+  h2 { font-size: 19px !important; }
+  h3 { font-size: 16px !important; }
+  p, li, span, div { line-height: 1.75 !important; }
+  .space-y-6 > * { margin-bottom: 22px !important; }
+  .grid { gap: 18px !important; }
+  .lift { transform: none !important; }
+  .lift:hover { transform: none !important; }
+  /* تقسيم البطاقات الطويلة على صفحات متعددة دون قص النص */
+  .break-inside-avoid,
+  .card-print { break-inside: avoid; page-break-inside: avoid; }
+  .break-after { break-after: page; }
+  /* شريط علوي للسجلات المطبوعة */
+  main::before {
+    content: 'نظام إيناس للمذاكرة الذكية — Developed by Eg H.O';
+    display: block;
+    text-align: center;
+    font-weight: 700;
+    font-size: 13px;
+    color: #3b6cff;
+    letter-spacing: 0.5px;
+    margin-bottom: 16px;
+    border-bottom: 2px solid #3b6cff;
+    padding-bottom: 8px;
   }
 }
 .perspective-1000 {

@@ -90,17 +90,24 @@ router.get('/analysis-status', (req, res) => {
   res.json(latestJobForUser(req.user.id));
 });
 
+// المكتبة المشتركة: كل المستخدمين يرون كل المحاضرات (الجاهزة وغيرها) بغض النظر عن مالكها
 router.get('/', (req, res) => {
   const rows = db
-    .prepare('SELECT * FROM lectures WHERE user_id = ? ORDER BY created_at DESC')
-    .all(req.user.id);
+    .prepare(`
+      SELECT l.*, u.name AS owner_name, u.username AS owner_username
+      FROM lectures l JOIN users u ON u.id = l.user_id
+      ORDER BY l.created_at DESC
+    `)
+    .all();
+  // إرفاق علم الملكية ليساعد الواجهة في إظهار الحذف للمدير فقط
+  rows.forEach((r) => { r.owner = r.user_id === req.user.id ? true : false; });
   res.json(rows);
 });
 
 router.get('/:id', (req, res) => {
   const lec = db
-    .prepare('SELECT * FROM lectures WHERE id = ? AND user_id = ?')
-    .get(req.params.id, req.user.id);
+    .prepare('SELECT * FROM lectures WHERE id = ?')
+    .get(req.params.id);
   if (!lec) return res.status(404).json({ error: 'غير موجود' });
   const summary = db.prepare('SELECT * FROM summaries WHERE lecture_id = ?').get(lec.id);
   const questions = db.prepare('SELECT * FROM questions WHERE lecture_id = ?').all(lec.id);
@@ -174,9 +181,9 @@ router.post('/', upload.fields([{ name: 'files', maxCount: 10 }, { name: 'file',
   res.json({ id, jobId, status: 'queued', message: 'تم رفع الملف بنجاح — جارٍ التحليل في الخلفية' });
 });
 
-// إعادة محاولة تحليل محاضرة فشلت دون إعادة رفع الملف
+// إعادة محاولة تحليل محاضرة فشلت دون إعادة رفع الملف (متاحة من المكتبة المشتركة)
 router.post('/:id/retry', (req, res) => {
-  const lec = db.prepare('SELECT * FROM lectures WHERE id = ? AND user_id = ?').get(req.params.id, req.user.id);
+  const lec = db.prepare('SELECT * FROM lectures WHERE id = ?').get(req.params.id);
   if (!lec) return res.status(404).json({ error: 'غير موجود' });
   const hasSummary = db.prepare('SELECT COUNT(*) AS c FROM summaries WHERE lecture_id = ?').get(lec.id).c > 0;
   if (lec.status === 'ready' && hasSummary) {
@@ -186,19 +193,21 @@ router.post('/:id/retry', (req, res) => {
   db.prepare(
     `UPDATE lectures SET status='processing', progress=0, current_stage='queued', error_message=NULL, updated_at=datetime('now') WHERE id=?`
   ).run(lec.id);
-  const jobId = enqueueAnalysis({ userId: req.user.id, lectureId: lec.id, fileHash: hash });
+  const jobId = enqueueAnalysis({ userId: lec.user_id, lectureId: lec.id, fileHash: hash });
   res.json({ ok: true, id: lec.id, jobId, status: 'queued', message: 'أُعيدت جدولة التحليل' });
 });
 
+// حذف المحاضرة من المكتبة المشتركة: صلاحية المدير فقط
 router.delete('/:id', (req, res) => {
-  const lec = db.prepare('SELECT * FROM lectures WHERE id = ? AND user_id = ?').get(req.params.id, req.user.id);
+  if (!req.user.isAdmin) return res.status(403).json({ error: 'غير مسموح — صلاحية المدير مطلوبة للحذف من المكتبة' });
+  const lec = db.prepare('SELECT * FROM lectures WHERE id = ?').get(req.params.id);
   if (!lec) return res.status(404).json({ error: 'غير موجود' });
   unlinkStored(lec.file_path);
-  deleteJobsForLecture(req.user.id, lec.id);
-  if (analysisProgress.has(req.user.id) && analysisProgress.get(req.user.id).lectureId === lec.id) {
-    analysisProgress.delete(req.user.id);
+  deleteJobsForLecture(lec.user_id, lec.id);
+  if (analysisProgress.has(lec.user_id) && analysisProgress.get(lec.user_id).lectureId === lec.id) {
+    analysisProgress.delete(lec.user_id);
   }
-  db.prepare('DELETE FROM lectures WHERE id = ? AND user_id = ?').run(req.params.id, req.user.id);
+  db.prepare('DELETE FROM lectures WHERE id = ?').run(req.params.id);
   res.json({ ok: true });
 });
 

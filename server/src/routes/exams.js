@@ -15,9 +15,9 @@ function gatherQuestions(userId) {
 // نقاط ضعف الطالب التراكمية عبر كل النتائج والمحاضرات (لترجيحها في التوليد والتوزيع)
 const weakTopics = (userId, limit = 8) => weakTopicNames(userId, limit);
 
-// بيانات الربط: المحاضرات مع معلومات تحليلها وملخصاتها (لشاشة الاختبارات)
+// بيانات الربط: كل المحاضرات الجاهزة من المكتبة المشتركة (مع معلومات تحليلها وملخصاتها)
 router.get('/sources', (req, res) => {
-  const lectures = db.prepare('SELECT * FROM lectures WHERE user_id = ? AND status = ? ORDER BY created_at DESC').all(req.user.id, 'ready');
+  const lectures = db.prepare("SELECT * FROM lectures WHERE status = 'ready' ORDER BY created_at DESC").all();
   const sources = lectures.map((lec) => {
     const summary = db.prepare('SELECT * FROM summaries WHERE lecture_id = ?').get(lec.id);
     let summaryText = '';
@@ -72,7 +72,8 @@ router.post('/generate', async (req, res) => {
     db.exec('BEGIN');
     try {
       for (const lid of lectureIds) {
-        const lec = db.prepare('SELECT * FROM lectures WHERE id = ? AND user_id = ?').get(lid, req.user.id);
+        // المكتبة المشتركة: أي محاضرة جاهزة يمكن التذاكر منها بغض النظر عن مالكها
+        const lec = db.prepare("SELECT * FROM lectures WHERE id = ? AND status = 'ready'").get(lid);
         if (!lec) continue;
         const summary = db.prepare('SELECT * FROM summaries WHERE lecture_id = ?').get(lid);
         const result = await generateExamFromLecture(lec.content || '', summary || null, lec.title, per, weakTopics);
@@ -95,20 +96,20 @@ router.post('/generate', async (req, res) => {
       pool = freshly;
     } else {
       const placeholders = lectureIds.map(() => '?').join(',');
-      pool = db.prepare(`SELECT * FROM questions WHERE user_id = ? AND lecture_id IN (${placeholders}) AND type IN ('mcq','truefalse')`).all(req.user.id, ...lectureIds);
+      pool = db.prepare(`SELECT * FROM questions WHERE lecture_id IN (${placeholders}) AND type IN ('mcq','truefalse')`).all(...lectureIds);
     }
   } else if (Array.isArray(lectureIds) && lectureIds.length) {
     const placeholders = lectureIds.map(() => '?').join(',');
     pool = db
-      .prepare(`SELECT * FROM questions WHERE user_id = ? AND lecture_id IN (${placeholders}) AND type IN ('mcq','truefalse')`)
-      .all(req.user.id, ...lectureIds);
+      .prepare(`SELECT * FROM questions WHERE lecture_id IN (${placeholders}) AND type IN ('mcq','truefalse')`)
+      .all(...lectureIds);
   } else {
     pool = gatherQuestions(req.user.id);
   }
 
   // إن كان المخزون قليلًا واخترنا كل المحاضرات، نولّد من المحتوى عبر AI
   if (pool.length < count * 2 && !(Array.isArray(lectureIds) && lectureIds.length)) {
-    const lectures = db.prepare('SELECT * FROM lectures WHERE user_id = ? AND status = ?').all(req.user.id, 'ready');
+    const lectures = db.prepare("SELECT * FROM lectures WHERE status = 'ready' ORDER BY created_at DESC").all();
     const insertQ = db.prepare('INSERT INTO questions (lecture_id, user_id, text, type, options, correct_answer, explanation, topic, question_en, question_ar, answer_en, answer_ar, difficulty, page) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
     for (const lec of lectures) {
       const summary = db.prepare('SELECT * FROM summaries WHERE lecture_id = ?').get(lec.id);

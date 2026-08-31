@@ -65,7 +65,11 @@ router.post('/submit', async (req, res) => {
   let skillLevels = null;
   let recap = '';
   if (graded.wrongItems.length && !skipAi) {
-    const lecture = db.prepare('SELECT * FROM lectures WHERE user_id = ? LIMIT 1').get(req.user.id);
+    // استخدام محتوى المحاضرة المرتبطة بأول سؤال خاطئ (من المكتبة المشتركة)
+    const firstQ = db.prepare('SELECT lecture_id FROM questions WHERE id = ?').get((answers[0] && answers[0].questionId));
+    const lecture = firstQ && firstQ.lecture_id
+      ? db.prepare('SELECT * FROM lectures WHERE id = ?').get(firstQ.lecture_id)
+      : db.prepare("SELECT * FROM lectures WHERE status = 'ready' ORDER BY created_at DESC LIMIT 1").get();
     const content = lecture ? lecture.content : '';
     const rec = await analyzeWrongAnswers(content, lecture ? lecture.title : '', graded.wrongItems, graded);
     recommendations = rec.recommendations || [];
