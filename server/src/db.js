@@ -1,12 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import path from 'path';
-import { fileURLToPath } from 'url';
-import fs from 'fs';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// دعم البيئة الاستضافية: DATA_DIR يوجّه قاعدة البيانات والمرفوعات إلى قرص دائم
-const dataDir = process.env.DATA_DIR || path.join(__dirname, '..', 'data');
-if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+import { dataDir } from './lib/dataDir.js';
 
 const db = new DatabaseSync(path.join(dataDir, 'einas.db'));
 db.exec('PRAGMA journal_mode = WAL;');

@@ -2,9 +2,9 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { createWorker } from 'tesseract.js';
+import { dataDir } from './dataDir.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dataDir = process.env.DATA_DIR ? process.env.DATA_DIR : path.join(__dirname, '..', '..', 'data');
 // مصدر بيانات اللغة المرفوعة مع الريبو (لكي يعمل OCR على الاستضافة السحابية)
 const assetsLangDir = path.join(__dirname, '..', '..', 'assets', 'lang');
 const langDir = path.join(dataDir, 'lang-data');

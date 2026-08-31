@@ -3,16 +3,15 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
-import { fileURLToPath } from 'url';
 import db from '../db.js';
 import { auth } from '../lib/auth.js';
 import { enqueueAnalysis, deleteJobsForLecture, latestJobForUser } from '../lib/jobs.js';
 import { analysisProgress } from '../lib/jobs.js';
+import { dataDir } from '../lib/dataDir.js';
 
 export { analysisProgress };
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const uploadsDir = process.env.DATA_DIR ? path.join(process.env.DATA_DIR, 'uploads') : path.join(__dirname, '..', '..', 'data', 'uploads');
+const uploadsDir = path.join(dataDir, 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 const ALLOWED_EXTS = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.csv', '.txt', '.text', '.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif', '.tif', '.tiff'];

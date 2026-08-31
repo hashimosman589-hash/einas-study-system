@@ -18,6 +18,7 @@ import adminRoutes from './routes/admin.js';
 import { aiAvailable } from './lib/ai.js';
 import { promoteAdmins } from './lib/auth.js';
 import { startWorker } from './lib/jobs.js';
+import { dataDir } from './lib/dataDir.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -27,7 +28,6 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
 // تقديم ملفات مرفوعة للعرض
-const dataDir = process.env.DATA_DIR || path.join(__dirname, '..', 'data');
 app.use('/uploads', express.static(path.join(dataDir, 'uploads')));
 
 // تقديم بيانات لغة التعرف الضوئي (تُقرأ محليًا عبر HTTP داخل عملية الخادم)
