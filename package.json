@@ -4,7 +4,7 @@
   "private": true,
   "description": "نظام إيناس للمذاكرة الذكية",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.5.0"
   },
   "scripts": {
     "install:all": "npm install --prefix server && npm install --prefix client",
@@ -12,7 +12,6 @@
     "dev:client": "npm run dev --prefix client",
     "dev": "concurrently -n server,client -c blue,green \"npm run dev:server\" \"npm run dev:client\"",
     "build": "npm run build --prefix client",
-    "postinstall": "npm install --prefix server && npm install --prefix client",
     "start": "npm run start --prefix server"
   },
   "devDependencies": {
