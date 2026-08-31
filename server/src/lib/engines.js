@@ -236,14 +236,18 @@ const READGRAPH_SYSTEM = `أنت محرك قراءة وفهم مستندات ع�
 3) الأسئلة/الأجوبة الواردة حرفيًا في النص (س:/ج:/Q:/A:) مع قسمها.
 4) أرقام الصفحات ((PAGE:..)) المكتوبة فعلًا في الجزء (لا تخترعها).
 5) نموذج المعرفة Knowledge Graph: مفاهيم Concepts (مصطلح + تعريف كما ورد + أهمية 1-100 + القسم)؛ علاقات Relations منطقية (يسبب، يُصنّف ضمن، يُشخّص بـ، يعالج بـ، مضاعفة لـ، يُوقى بـ، من أعراض)؛ قيم/أرقام Values مهمة بسياقها (جرعات، قيم مخبرية، نسب، مدد)؛ High-Yield نقاط عالية العائد للامتحان؛ مقارنات Comparisons بين مفاهيم؛ استثناءات Exceptions وتحذيرات؛ needsVerification لأي جملة غير مدعومة قطعًا بالجزء — لا تخمنها.
-خذ كل التفاصيل، لا تختصر المعلومات الهامة، كل عنصر بلغة النص ومربوط بقسمه. ناتج JSON محكم فقط.`;
+خذ كل التفاصيل، لا تختصر المعلومات الهامة، واكتب كل حقل بلغة النص الأصلية نفسها. ناتج JSON محكم فقط.`;
 
-export async function readGraphEngine(chunkText, title, idx, total) {
+export async function readGraphEngine(chunkText, title, idx, total, language = 'ar') {
+  const langNote = language === 'ar'
+    ? 'اكتب جميع حقول الناتج بالعربية الفصحى وحدها (لا ترجمة إنجليزية إطلاقًا).'
+    : 'Write every output field in English only (no Arabic translation whatsoever).';
   const raw = await chat([
     { role: 'system', content: READGRAPH_SYSTEM },
     {
       role: 'user',
-      content: `اقرأ الجزء ${idx + 1} من ${total} من المحاضرة "${title}" كاملًا ثم أخرج JSON بكل مجموعات البيانات التالية:
+      content: `اقرأ الجزء ${idx + 1} من ${total} من المحاضرة "${title}" كاملًا ثم أخرج JSON بكل مجموعات البيانات التالية.
+${langNote}
 {
  "sections": [{"heading": "العنوان كما ورد أو ''", "summary": "ما يغطيه هذا القسم (سطر واحد)", "topic": "الموضوع العلمي"}],
  "hasTables": false,
@@ -284,12 +288,15 @@ const QUESTION_SYSTEM = `أنت محرك توليد الأسئلة بعقل أس
 - لا سؤال مبني على معلومة خارج هذه الاستخلاصات؛ الحالة الإكلينيكية من معلومات المحاضرة نفسها.
 - MCQ: 4 خيارات منطقية (مشتتات مقنعة من نفس السياق) وإجابة صحيحة واحدة واضحة.
 - صح/خطأ: عبارة منطقية لا تشويه، وتوازن بين الصحيح والخاطئ.
-- كل سطر بلغة واحدة نقية (عربي خالص أو إنجليزي خالص)، مع questionEn/questionAr معًا.
-- لكل سؤال درجة صعوبة easy|medium|hard وأهمية importance 1-100 وtopic وpage (رقم الصفحة الكتابي فقط؛ إن لم يوجد فـ'').
+- اكتب كل سؤال وخياراته وشرحه بلغة واحدة فقط هي لغة المحاضرة المعطاة، ولا تُضِف ترجمة للغة أخرى إطلاقًا (موفِّر كبير للوقت).
+- لكل سؤال درجة صعوبة easy|medium|hard وأهمية importance 1-100 وtopic وpage (رقم الصفحة الكتابي فقط؛ إن لم يوجد ف'').
 - لا سؤالًا مكررًا (نصًا أو فكرة) ولا فارغًا ولا عامًا.
 أنشئ ${QUESTIONS_PER_PART} سؤالًا فقط لا غير (عدّد بدقة)، عالي الجودة مغطيًا الأنواع التي يسمح بها المحتوى فعليًا. الإجابات والشرح في سطر أو سطرين بلا حشو. ناتج JSON محكم فقط.`;
 
-export async function questionChunkEngine(readInfo, graphInfo, idx, total) {
+export async function questionChunkEngine(readInfo, graphInfo, idx, total, language = 'ar') {
+  const langInstr = language === 'ar'
+    ? 'اكتب النصوص كلها بالعربية الفصحى: ضع السؤال في حقل questionAr واحذفه من questionEn، وفي text ضع سطر "س: ..." فقط بلا سطر Q:. المجموع بلغة واحدة هي العربية.'
+    : 'Write all text in English only: put the question text in the single "text" field and in questionEn (leave questionAr empty). Use a single line "Q: ..." only, no Arabic line.';
   const sections = (readInfo && readInfo.sections || []).map((s) => `${s.heading}${s.topic ? ' — ' + s.topic : ''}`).join(' | ');
   const qaInDoc = (readInfo && readInfo.embeddedQA || []).map((q) => `${q.question}?${q.answer ? ' — ' + q.answer : ''}`).join(' | ');
   const concepts = (graphInfo && graphInfo.concepts || []).slice(0, 12).map((c) => c.name || '').filter(Boolean).join('، ');
@@ -300,7 +307,8 @@ export async function questionChunkEngine(readInfo, graphInfo, idx, total) {
     { role: 'system', content: QUESTION_SYSTEM },
     {
       role: 'user',
-      content: `أنشئ أسئلة اختبار عن الجزء ${idx + 1} من ${total} من المحاضرة — اعتمادًا بالكامل على الاستخلاصات التالية:
+      content: `أنشئ أسئلة اختبار عن الجزء ${idx + 1} من ${total} من المحاضرة — اعتمادًا بالكامل على الاستخلاصات التالية.
+${langInstr}
 الأقسام المكتشفة في هذا الجزء: ${sections || 'غير محددة'}
 أسئلة واردة في الملف (استغل بعضها كسؤال للطالب بلا نسخ حرفي): ${qaInDoc || 'لا توجد'}
 مفاهيم رئيسية (تأكد من تغطيتها): ${concepts || 'غير محددة'}
@@ -315,11 +323,11 @@ export async function questionChunkEngine(readInfo, graphInfo, idx, total) {
 
 أخرج JSON:
 {"questions":[
- {"type":"mcq","questionAr":"","questionEn":"","text":"س: ...\\nQ: ...","options":{"A":"","B":"","C":"","D":""},"correctAnswer":"","explanation":"شرح ومصدر الإجابة من المحاضرة","topic":"","difficulty":"easy|medium|hard","page":"","importance":50},
+ {"type":"mcq","questionAr":"","questionEn":"","text":"سؤال بلغة واحدة","options":{"A":"","B":"","C":"","D":""},"correctAnswer":"","explanation":"شرح ومصدر الإجابة من المحاضرة","topic":"","difficulty":"easy|medium|hard","page":"","importance":50},
  {"type":"truefalse","text":"عبارة منطقية","options":null,"correctAnswer":"1","explanation":"","topic":"","difficulty":"","page":"","importance":0},
- {"type":"qa","questionAr":"","questionEn":"","text":"س: ...\\nQ: ...\\n\\nج: ...\\nA: ...","answerAr":"","answerEn":"","options":null,"correctAnswer":"","explanation":"","topic":"","difficulty":"","page":"","importance":0},
- {"type":"matching","questionAr":"س: وصّل كل عنصر بما يناسبه من العمود الآخر","questionEn":"Q: Match each item","text":"س: وصّل كل عنصر بالأعمدة\\nQ: Match each item","options":{"left":[{"id":"L1","label":"العنصر/المصطلح"},{"id":"L2","label":"..."}],"right":[{"id":"R1","label":"التعريف/المجموعة المقابلة"},{"id":"R2","label":"..."}],"pairs":[["L1","R1"],["L2","R2"]]},"correctAnswer":"[[\"L1\",\"R1\"],[\"L2\",\"R2\"]]","explanation":"مصدر كل ربط","topic":"","difficulty":"medium","page":"","importance":0},
- {"type":"ordering","questionAr":"رتّب الخطوات بالترتيب الصحيح","questionEn":"Order the steps","text":"رتّب الخطوات\\nOrder the steps","options":{"steps":[{"id":"S1","label":"الخطوة الأولى"},{"id":"S2","label":"الخطوة الثانية"},{"id":"S3","label":"الخطوة الثالثة"}]},"correctAnswer":"[\"S1\",\"S2\",\"S3\"]","explanation":"مصدر الترتيب","topic":"","difficulty":"medium","page":"","importance":0}
+ {"type":"qa","questionAr":"","questionEn":"","text":"سؤال بلغة واحدة ثم الإجابة","answerAr":"","answerEn":"","options":null,"correctAnswer":"","explanation":"","topic":"","difficulty":"","page":"","importance":0},
+ {"type":"matching","questionAr":"","questionEn":"","text":"سؤال التوصيل بلغة واحدة","options":{"left":[{"id":"L1","label":"..."},{"id":"L2","label":"..."}],"right":[{"id":"R1","label":"..."},{"id":"R2","label":"..."}],"pairs":[["L1","R1"],["L2","R2"]]},"correctAnswer":"[[\"L1\",\"R1\"],[\"L2\",\"R2\"]]","explanation":"مصدر كل ربط","topic":"","difficulty":"medium","page":"","importance":0},
+ {"type":"ordering","questionAr":"","questionEn":"","text":"رتّب الخطوات بالترتيب الصحيح","options":{"steps":[{"id":"S1","label":"الخطوة الأولى"},{"id":"S2","label":"الخطوة الثانية"},{"id":"S3","label":"الخطوة الثالثة"}]},"correctAnswer":"[\"S1\",\"S2\",\"S3\"]","explanation":"مصدر الترتيب","topic":"","difficulty":"medium","page":"","importance":0}
 ]}`,
     },
   ], 2600, true, 0.3);
@@ -337,7 +345,7 @@ const VALIDATE_SYSTEM = `أنت محرك مراجعة جودة الأسئلة (Q
 (4) Source: المعلومة من المرجع وليس معرفة خارجية — Lecture Mode؛ أي سؤال لا يمكن إجابته من المرجع يتم إسقاطه، ولا تصنع معلومات/أرقام/صفحات.
 (5) No Repetition: ليس تكرارًا لفكرة سؤال آخر.
 (6) Single Correct Answer: إجابة صحيحة واحدة فقط (للـ MCQ خيارات منطقية).
-القرار: احتفظ أو أعد الصياغة بلغة أكاديمية سليمة أو أسقط. لا تخترع رقم صفحة؛ ضع page فقط إن وُجد رقم حرفيًا في المرجع. أخرج القائمة النهائية للأسئلة المقبولة فقط مع الحقل grounding:"IN_DOCUMENT" لكل سؤال. كل سطر بلغة واحدة.
+القرار: احتفظ أو أعد الصياغة بلغة أكاديمية سليمة أو أسقط. لا تخترع رقم صفحة؛ ضع page فقط إن وُجد رقم حرفيًا في المرجع. أخرج القائمة النهائية للأسئلة المقبولة فقط مع الحقل grounding:"IN_DOCUMENT" لكل سؤال. حافظ على اللغة الواحدة الواردة في كل سؤال (عربية أو إنجليزية) ولا تُضِف أي ترجمة للغة الأخرى.
 الأنواع البنيوية (matching وordering وqa): راجع منطقها وبنيتها فقط (تطابق الـ pairs مع المعرّفات في options، واكتمال الـ steps ووضوح الترتيب) دون تعديل الشكل، وأبقِها في المخرجات بنفس بنيتها إن كانت صحيحة؛ وأسقطها فقط إن كانت فارغة أو بلا معنى.`;
 
 export async function validateQuestionsEngine(questions, referenceText) {
@@ -367,7 +375,10 @@ const SUMMARY_SYSTEM = `أنت محرك الملخص الذكي (High-Yield Summ
 - الأقسام المطلوبة بالترتيب إن توفرت بياناتها: الهدف/الفكرة العامة، **هيكل المحاضرة:** (مرقّم)، **المصنّف المعرفي للدرس:** (فئات حاضرة فعلًا فقط)، **المحاور المعرفية الرئيسية** (بالأهمية)، **High-Yield (متوقع في الامتحان):** (مرقّم قصير)، **قيم يجب حفظها:**، **فروق شائعة الالتباس (Common Confusions):**، **نقاط إكلينيكية (Clinical Pearls):**، **أسئلة واردة في المحاضرة (بحلولها):**، **تحتاج تحققًا (Needs Verification):** (فقط إن وُجدت).
 - لا تختلق أي معلومة؛ كل ما تكتبه من البيانات المقدمة. أخرج JSON محكمًا أيضًا يعطي keyPoints وimportantTerms وreviewTopics وhighYield.`;
 
-export async function summaryMergerEngine(data, title) {
+export async function summaryMergerEngine(data, title, language = 'ar') {
+  const langNote = language === 'ar'
+    ? 'اكتب الملخص كاملًا بالعربية الفصحى وحدها (لا ترجمة إنجليزية إطلاقًا).'
+    : 'Write the entire summary and all labels in English only (no Arabic translation).';
   const cap = (arr, n) => (Array.isArray(arr) ? arr.slice(0, n) : []);
   const concepts = cap(data.concepts, 70).map((c) => `${c.name}${c.definition ? ' — ' + c.definition.slice(0, 90) : ''}${c.section ? ' (' + c.section + ')' : ''}`).join('\n');
   const relations = cap(data.relations, 110).map((r) => `${r.subject} ${r.relation} ${r.object}`).join('\n');
@@ -384,6 +395,7 @@ export async function summaryMergerEngine(data, title) {
     {
       role: 'user',
       content: `العنوان: ${title}
+${langNote}
 === البيانات المستخلصة ===
 الهيكل:
 ${sections || '—'}
@@ -459,7 +471,18 @@ function buildReferenceText(readInfo, graphInfo) {
 }
 
 // ---------- خط الأنابيب الرئيسي ----------
-export async function runAnalysisPipeline(content, lectureTitle, onStage = null) {
+// كشف لغة ملف المصدر مرة واحدة لتوليد كل المخرجات بها فقط (بدل الترجمة الثنائية المكررة)
+// → تقليل حجم الناتج نحو النصف وبالتالي تسريع التحليل جذريًا.
+export function detectLanguage(content) {
+  const text = String(content || '');
+  if (!text) return 'en';
+  const ar = (text.match(/[\u0600-\u06FF]/g) || []).length;
+  const en = (text.match(/[A-Za-z]/g) || []).length;
+  return ar >= en ? 'ar' : 'en';
+}
+
+export async function runAnalysisPipeline(content, lectureTitle, onStage = null, language = null) {
+  const contentLang = language || detectLanguage(content);
   const annotated = annotatePageSplits(content);
   const chunks = chunkContent(annotated);
   const N = chunks.length;
@@ -512,7 +535,7 @@ export async function runAnalysisPipeline(content, lectureTitle, onStage = null)
     const t0 = Date.now();
     const i = chunk.index + 1;
     // المرحلة A+B: القراءة الكاملة + خريطة المعرفة في استدعاء واحد (نص الجزء يُرسل مرة واحدة)
-    const info = await readGraphEngine(chunk.text, lectureTitle, chunk.index, chunk.total);
+    const info = await readGraphEngine(chunk.text, lectureTitle, chunk.index, chunk.total, contentLang);
     doneA.n++;
     emit(pctOf(), `تحليل بنية المحاضرة وبناء خريطة المعرفة — الجزء ${i}/${N}` + (concurrent ? ' (بتوازٍ)' : ''));
 
@@ -525,7 +548,7 @@ export async function runAnalysisPipeline(content, lectureTitle, onStage = null)
       relations: info.relations || [],
       values: info.values || [],
       highYield: info.highYield || [],
-    }, chunk.index, chunk.total);
+    }, chunk.index, chunk.total, contentLang);
     doneB.n++;
     emit(pctOf(), `توليد الأسئلة الذكية — الجزء ${i}/${N}` + (concurrent ? ' (بتوازٍ)' : ''));
 
@@ -630,7 +653,7 @@ export async function runAnalysisPipeline(content, lectureTitle, onStage = null)
 
   // المرحلة D: الملخص الذكي الموحّد
   emit(86, 'بناء الملخص عالي العائد');
-  const sum = await summaryMergerEngine(merged, lectureTitle);
+  const sum = await summaryMergerEngine(merged, lectureTitle, contentLang);
   emit(93, 'تجهيز النتائج النهائية');
 
   // بيانات الأجزاء (الترتيب + نطاق الصفحات) تُخزَّن في document_chunks
