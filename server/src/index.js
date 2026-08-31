@@ -19,6 +19,7 @@ import { aiAvailable } from './lib/ai.js';
 import { promoteAdmins } from './lib/auth.js';
 import { startWorker } from './lib/jobs.js';
 import { dataDir } from './lib/dataDir.js';
+import { seedExamples } from './lib/examples.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -52,6 +53,8 @@ app.use('/api/admin', adminRoutes);
 
 // رفع عناوين البريد المدرجة في .env إلى صلاحية مدير عند الإقلاع
 promoteAdmins();
+// إضافة محاضرات وأسئلة نموذجية عند قاعدة بيانات فارغة (للتوضيح)
+try { seedExamples(); } catch (e) { console.error('فشل إضافة الأمثلة:', e.message); }
 
 // تقديم الواجهة المبنية (إن وُجد build)
 const clientDist = path.join(__dirname, '..', '..', 'client', 'dist');
