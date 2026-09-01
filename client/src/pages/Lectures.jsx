@@ -60,8 +60,33 @@ export default function Lectures() {
   const tick = async () => {
     if (!tickRef.current) return;
     try {
-      const s = await api.get('/lectures/analysis-status');
-      if (!s) return;
+      // بعد تحديث الصفحة نتابع وظيفة المحاضرة المحددة تحديدًا (لا أحدث وظيفة عامة) لئلا يختلط التقدم بين الملفات
+      const q = targetRef.current ? '/lectures/analysis-status?lectureId=' + targetRef.current : '/lectures/analysis-status';
+      const s = await api.get(q);
+      if (!s) {
+        // لا توجد وظيفة قيد التتبع بعد (مثلًا بعد إعادة تشغيل الخادم): لا نخفي صندوق التقدم بل نبقيه حيًّا
+        // وننقح حالة المحاضرة من المكتبة مباشرة (ready/error تظهر حتى بدون وظيفة بصرية).
+        if (targetRef.current != null) {
+          const rows = await api.get('/lectures');
+          const row = rows.find((l) => l.id === targetRef.current);
+          if (row && row.status === 'ready') return finalizeSuccess();
+          if (row && (row.status === 'error' || row.status === 'failed')) {
+            stopPoll();
+            finalizeFailed(row.id, row.error_message || 'فشل التحليل');
+            setTimeout(load, 400);
+            return;
+          }
+          if (row) {
+            setProcPct(row.progress || 0);
+            setProcStage(row.current_stage || 'analyzing');
+            setProcMsg(row.progress ? 'جارٍ تحليل الملف في الخلفية...' : 'إعادة الاتصال بالخادم...');
+            setProcStatus('running');
+            return;
+          }
+        }
+        setProcStatus('running');
+        return;
+      }
       const isMine = targetRef.current == null || targetRef.current === s.lectureId;
       setProcPct(s.pct);
       setProcMsg(s.message || '');
@@ -91,6 +116,17 @@ export default function Lectures() {
     } catch { /* تجاهل مؤقت */ }
   };
 
+  const finalizeSuccess = () => {
+    stopPoll();
+    setUploading(false);
+    setProcStatus('completed');
+    setProcPct(100);
+    setProcStage('completed');
+    setMsg('تم التحليل بنجاح');
+    setFiles([]); setTitle(''); setSubject('');
+    setTimeout(load, 400);
+  };
+
   tickRef.current = tick;
 
   const startPolling = () => {
@@ -115,6 +151,18 @@ export default function Lectures() {
     // startPolling/tick تُعرَّف في جسم المكوّن؛ الاعتماد على الرفض في أول حِمل فقط
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // منع التحديث/المغادرة أثناء رفع الملف أو التحليل الحيّ (التحديث يقطع رفع الملف فعليًّا).
+  useEffect(() => {
+    const onBefore = (e) => {
+      if (uploading && procPct < 100) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', onBefore);
+    return () => window.removeEventListener('beforeunload', onBefore);
+  }, [uploading, procPct]);
 
   const onUpload = async (e) => {
     e.preventDefault();

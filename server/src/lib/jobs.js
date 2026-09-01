@@ -66,12 +66,15 @@ export function deleteJobsForLecture(userId, lectureId) {
   db.prepare('DELETE FROM analysis_jobs WHERE lecture_id = ? AND user_id = ?').run(lectureId, userId);
 }
 
-export function latestJobForUser(userId) {
+export function latestJobForUser(userId, lectureId = null) {
+  // عند تحديد محاضرة نقتصر على وظائفها فقط (تتبع موثوق للتقدم الخاص بملف معيّن بعد تحديث الصفحة)
+  const where = lectureId != null && Number.isFinite(lectureId) ? 'j.user_id = ? AND j.lecture_id = ?' : 'j.user_id = ?';
+  const args = lectureId != null && Number.isFinite(lectureId) ? [userId, lectureId] : [userId];
   const row = db.prepare(
     `SELECT j.*, l.title AS lecture_title, l.status AS lecture_status
      FROM analysis_jobs j LEFT JOIN lectures l ON l.id = j.lecture_id
-     WHERE j.user_id = ? ORDER BY j.id DESC LIMIT 1`
-  ).get(userId);
+     WHERE ${where} ORDER BY j.id DESC LIMIT 1`
+  ).get(...args);
   if (!row) return null;
   // موقع التحليل داخل الملف: الأجزاء تصدر من خط الإنتاج بصيغة «الجزء X/N»
   const pm = String(row.message || '').match(/الجزء (\d+)\/(\d+)/);

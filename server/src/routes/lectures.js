@@ -85,9 +85,11 @@ function cloneLectureFromCache(cached, { userId, title, subject, storeNames, sto
   return { newId, questionCount };
 }
 
-// التقدم: يقرأ أحدث وظيفة للمستخدم من قاعدة البيانات (تنجو من إعادة تشغيل الخادم)
+// التقدم: يقرأ أحدث وظيفة للمستخدم من قاعدة البيانات (تنجو من إعادة تشغيل الخادم).
+// عند تمرير ?lectureId= يُعيد وظيفة تلك المحاضرة تحديدًا (لا يختلط التقدم بين الملفات).
 router.get('/analysis-status', (req, res) => {
-  res.json(latestJobForUser(req.user.id));
+  const lectureId = req.query.lectureId ? Number(req.query.lectureId) : null;
+  res.json(latestJobForUser(req.user.id, Number.isFinite(lectureId) ? lectureId : null));
 });
 
 // المكتبة المشتركة: كل المستخدمين يرون كل المحاضرات (الجاهزة وغيرها) بغض النظر عن مالكها
