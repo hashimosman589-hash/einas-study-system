@@ -111,7 +111,7 @@ function ReviewTopicFlow({ autoStart, onErr }) {
             {idx + 1}
           </div>
 
-          <TranslationBox parts={q.type === 'mcq' ? [q.text, ...oKeys.map((k) => opts[k])] : [q.text]} source={detectLang(q.text)} render={(vals, _view, { dir }) => (
+          <TranslationBox parts={q.type === 'mcq' ? [q.text, ...oKeys.map((k) => opts[k])] : [q.text]} source={detectLang(q.text)} noTranslate render={(vals, _view, { dir }) => (
             <>
               <div dir={dir} style={{ textAlign: dir === 'ltr' ? 'left' : 'right' }} className="font-extrabold text-lg text-main mb-5">
                 {vals[0]}

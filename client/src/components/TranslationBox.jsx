@@ -23,6 +23,7 @@ export default function TranslationBox({
   className = '',
   align = 'left',
   label = 'ترجمة',
+  noTranslate = false,
 }) {
   const originals = parts.map((p) => String(p == null ? '' : p));
   const src = source || detectLang(originals.join(' ').trim());
@@ -34,7 +35,7 @@ export default function TranslationBox({
   const cacheRef = useRef(new Map());
   const [translated, setTranslated] = useState(null);
 
-  const shown = view === 'orig' ? originals : translated || originals;
+  const shown = noTranslate || view === 'orig' ? originals : translated || originals;
   const shownText = shown.join(' ').trim();
   const dir = detectLang(shownText) === 'ar' ? 'rtl' : 'ltr';
 
@@ -97,16 +98,18 @@ export default function TranslationBox({
   return (
     <div className={className}>
       <div className="relative inline-flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-          disabled={busy}
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold border border-soft bg-card text-main hover:bg-slate-50 dark:hover:bg-slate-800 transition disabled:opacity-60 ${triggerClassName}`}
-        >
-          <span aria-hidden className="text-sm leading-none">🌐</span>
-          {label}
-          {busy && <Spinner className="w-3 h-3 text-brand-600" />}
-        </button>
+        {!noTranslate && (
+          <button
+            type="button"
+            onClick={() => setOpen((o) => !o)}
+            disabled={busy}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold border border-soft bg-card text-main hover:bg-slate-50 dark:hover:bg-slate-800 transition disabled:opacity-60 ${triggerClassName}`}
+          >
+            <span aria-hidden className="text-sm leading-none">🌐</span>
+            {label}
+            {busy && <Spinner className="w-3 h-3 text-brand-600" />}
+          </button>
+        )}
         {err && <span dir="rtl" className="text-[11px] text-red-500">{err}</span>}
 
         {open && (

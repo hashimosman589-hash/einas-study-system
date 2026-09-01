@@ -87,6 +87,7 @@ export default function ResultDetail() {
                   </div>
                   <TranslationBox
                     parts={parts}
+                    noTranslate
                     render={(vals) => (
                       <ul className="space-y-1">
                         {vals.slice(1, 1 + nTips).map((t, j) => (
@@ -128,6 +129,7 @@ export default function ResultDetail() {
               <div key={i} className={`p-4 rounded-xl border ${a.isCorrect ? 'border-green-200 bg-green-50 dark:bg-green-900/10' : 'border-red-200 bg-red-50 dark:bg-red-900/10'}`}>
                 <TranslationBox
                   parts={parts}
+                  noTranslate
                   render={(vals, view, { dir }) => (
                     <div className="flex items-start gap-2">
                       <span className={`shrink-0 w-6 h-6 rounded-full text-white flex items-center justify-center text-xs ${a.isCorrect ? 'bg-green-500' : 'bg-red-500'}`}>

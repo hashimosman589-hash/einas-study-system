@@ -429,6 +429,7 @@ export default function Lectures() {
                 <TranslationBox
                   parts={[l.title, l.subject ? `المادة: ${l.subject}` : '', l.file_name].filter(Boolean)}
                   className="mt-3"
+                  noTranslate
                 />
               </Card>
             ))}

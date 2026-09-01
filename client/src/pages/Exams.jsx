@@ -120,6 +120,7 @@ export default function Exams() {
                     <TranslationBox
                       parts={parts}
                       source={detectLang(q.text)}
+                      noTranslate
                       render={(vals, view, { dir }) => (
                         <>
                           <div dir={dir} style={{ textAlign: dir === 'ltr' ? 'left' : 'right' }} className="font-semibold text-main mb-3">{vals[0]}</div>
