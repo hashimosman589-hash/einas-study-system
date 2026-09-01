@@ -337,6 +337,66 @@ ${langInstr}
   return p.questions;
 }
 
+// ---------- محرك 1+2+3 المدمج: قراءة + خريطة معرفية + أسئلة في استدعاء واحد لكل جزء ----------
+// استدعاء الذكاء الواحد يتلقى نص الجزء كاملًا مرة واحدة (قراءة كاملة بلا فقدان محتوى) ثم يخرج
+// البنية + الخريطة المعرفية + الأسئلة معًا — فيقطع عدد استدعاءات كل جزء إلى النصف لرفع السرعة
+// دون حذف أي مرحلة (توليد الأسئلة يبقى كما هو: أسئلة جديدة تُفتح في الاختبار).
+const COMBINED_SYSTEM = `${READGRAPH_SYSTEM}
+
+ثم، بصفة أستاذ جامعي واضع امتحانات طبية (Medical Examiner)، أنشئ بعد الاستخلاصات أعلاه ${QUESTIONS_PER_PART} أسئلة اختبار من هذا الجزء نفسه تغطي فهمه وربطه واستدلاله السريري:
+الأنواع المتاحة (اختر الأنسب للمحتوى): تعريفية، مباشرة، اشرح/لماذا، قارن، اذكر/اسرد، رتّب خطوات (ordering)، أكمل، توصيل/مطابقة (matching)، صح/خطأ، MCQ، حالة إكلينيكية قصيرة (مريض يعاني من... → ما التشخيص الأرجح؟ ما الاختبار التأكيدي؟ ما أفضل خطوة تالية؟).
+قواعد مطلقة:
+- اعتمد حصريًا على نص الجزء المعطى (Lecture Mode بلا هلوسة) ولا سؤالًا خارج تأسيسه.
+- MCQ: 4 خيارات منطقية وإجابة صحيحة واحدة واضحة.
+- صح/خطأ: عبارة منطقية لا تشويه.
+- لكل سؤال difficulty: easy|medium|hard و topic و page (رقم الصفحة الكتابي فقط إن وُجد (PAGE:..)).
+- لا سؤالًا مكررًا ولا فارغًا ولا عامًا.
+- اكتب كل حقل بلغة نص الجزء الأصلية نفسها بلا أي ترجمة للغة أخرى.
+ناتج JSON محكم فقط يضم المفاتيح أعلاه + مفتاح "questions" بقائمة الأسئلة.`;
+
+export async function readGraphQuestionsEngine(chunkText, title, idx, total, language = 'ar') {
+  const langNote = language === 'ar'
+    ? 'اكتب جميع حقول الناتج (الاستخلاصات والأسئلة) بالعربية الفصحى وحدها (لا ترجمة إنجليزية إطلاقًا).'
+    : 'Write every output field (extractions and questions) in English only (no Arabic translation whatsoever).';
+  const raw = await chat([
+    { role: 'system', content: COMBINED_SYSTEM },
+    {
+      role: 'user',
+      content: `اقرأ الجزء ${idx + 1} من ${total} من المحاضرة "${title}" كاملًا ثم أخرج JSON بكل مجموعات البيانات التالية.
+${langNote}
+{
+ "sections": [{"heading": "", "summary": "", "topic": ""}],
+ "hasTables": false,
+ "tableBlocks": ["وصف مختصر لكل جدول/صفوف بيانات إن وُجدت"],
+ "hasEmbeddedQA": false,
+ "embeddedQA": [{"question": "", "answer": "", "section": ""}],
+ "readingNote": "READ_FULL",
+ "unreadablePart": "",
+ "concepts": [{"name": "", "definition": "", "importance": 50, "section": ""}],
+ "relations": [{"subject": "", "relation": "", "object": "", "section": ""}],
+ "values": [{"statement": "", "section": ""}],
+ "highYield": [""],
+ "comparisons": [{"items": ["أ", "ب"], "difference": ""}],
+ "exceptions": [""],
+ "needsVerification": [""],
+ "questions": [
+   {"type":"mcq","questionAr":"","questionEn":"","text":"سؤال بلغة واحدة","options":{"A":"","B":"","C":"","D":""},"correctAnswer":"","explanation":"","topic":"","difficulty":"easy|medium|hard","page":"","importance":50},
+   {"type":"truefalse","text":"","options":null,"correctAnswer":"1","explanation":"","topic":"","difficulty":"","page":"","importance":0},
+   {"type":"qa","questionAr":"","questionEn":"","text":"سؤال بلغة واحدة ثم الإجابة","answerAr":"","answerEn":"","explanation":"","topic":"","difficulty":"","page":"","importance":0}
+ ]
+}
+قيد الكمية الإلزامي (لا تتجاوزه أبدًا): sections≤10، concepts≤12، relations≤16، values≤8، highYield≤6، comparisons≤4، exceptions≤4، embeddedQA≤4، tableBlocks≤4، وعدّد بدقة ${QUESTIONS_PER_PART} أسئلة لا غير.
+قيد الإيجاز الإلزامي: كل تعريف/جملة/قيمة/شرح في 6-12 كلمة كحد أقصى، والإجابات والشرح في سطر أو سطرين بلا حشو.
+نص الجزء:
+${chunkText}`,
+    },
+  ], 4200, true, 0.25);
+  const p = extractJson(raw);
+  if (!Array.isArray(p.sections) || !Array.isArray(p.concepts)) throw new Error('READGRAPH_INVALID');
+  if (!Array.isArray(p.questions) || !p.questions.length) throw new Error('QG_INVALID');
+  return p;
+}
+
 // ---------- محرك 4: QuestionValidation + Anti-Hallucination ----------
 const VALIDATE_SYSTEM = `أنت محرك مراجعة جودة الأسئلة (Question Validation + Anti-Hallucination).
 تُعطى نصًا مرجعيًا معتمدًا وبنك أسئلة ناتجًا. لكل سؤال طبّق الفحص السداسي:
@@ -531,27 +591,15 @@ export async function runAnalysisPipeline(content, lectureTitle, onStage = null,
   const doneA = { n: 0 }; const doneB = { n: 0 }; const doneC = { n: 0 };
   const pctOf = () => 5 + 45 * (doneA.n / N) + 25 * (doneB.n / N) + 10 * (doneC.n / N);
 
-  // يعالج جزءًا واحدًا كاملًا (قراءة+خريطة → أسئلة → تحقق) ثم يجمّع نتيجته
+  // يعالج جزءًا واحدًا كاملًا (قراءة + خريطة + أسئلة في استدعاء واحد) ثم يجمّع نتيجته
   async function processChunk(chunk) {
     const t0 = Date.now();
     const i = chunk.index + 1;
-    // المرحلة A+B: القراءة الكاملة + خريطة المعرفة في استدعاء واحد (نص الجزء يُرسل مرة واحدة)
-    const info = await readGraphEngine(chunk.text, lectureTitle, chunk.index, chunk.total, contentLang);
-    doneA.n++;
-    emit(pctOf(), `تحليل بنية المحاضرة وبناء خريطة المعرفة — الجزء ${i}/${N}` + (concurrent ? ' (بتوازٍ)' : ''));
-
-    // المرحلة C: توليد الأسئلة (بعقل واضع الامتحان، مستفيدًا من البنية والخريطة)
-    const questions = await questionChunkEngine({
-      sections: info.sections || [],
-      embeddedQA: info.embeddedQA || [],
-    }, {
-      concepts: info.concepts || [],
-      relations: info.relations || [],
-      values: info.values || [],
-      highYield: info.highYield || [],
-    }, chunk.index, chunk.total, contentLang);
-    doneB.n++;
-    emit(pctOf(), `توليد الأسئلة الذكية — الجزء ${i}/${N}` + (concurrent ? ' (بتوازٍ)' : ''));
+    // اختصار التحليل: يقرأ نص الجزء كاملًا مرة واحدة ويخرج البنية والخريطة والأسئلة معًا
+    // → نصف استدعاءات كل جزء (سرعة أعلى) دون حذف أي مرحلة أو فقدان محتوى.
+    const info = await readGraphQuestionsEngine(chunk.text, lectureTitle, chunk.index, chunk.total, contentLang);
+    doneA.n++; doneB.n++;
+    emit(pctOf(), `تحليل بنية المحاضرة وتوليد الأسئلة — الجزء ${i}/${N}` + (concurrent ? ' (بتوازٍ)' : ''));
 
     const readInfo = {
       sections: info.sections || [],
@@ -573,6 +621,7 @@ export async function runAnalysisPipeline(content, lectureTitle, onStage = null,
     // المرحلة D: المراجعة والتحقق (Question Validation + Anti-Hallucination)
     // تُنفَّذ فقط للبنوك الكبيرة لتوفير ميزانية التوكنات — التوليد يتضمن VERIFY مدمجًا،
     // ويلي الدمج تطهير محلي (منع تكرار/عمومية/فراغ).
+    const questions = info.questions || [];
     let validated = questions;
     if (questions.length >= VALIDATE_MIN_Q) {
       validated = await validateQuestionsEngine(questions, buildReferenceText(readInfo, graphInfo));
