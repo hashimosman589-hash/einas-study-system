@@ -93,11 +93,15 @@ router.get('/analysis-status', (req, res) => {
 });
 
 // المكتبة المشتركة: كل المستخدمين يرون كل المحاضرات (الجاهزة وغيرها) بغض النظر عن مالكها
+// ?deleted=1 (مدير فقط) يعرض سلة المحذوفات لاسترجاعها
 router.get('/', (req, res) => {
+  const showDeleted = req.query.deleted === '1';
+  if (showDeleted && !req.user.isAdmin) return res.status(403).json({ error: 'غير مسموح' });
   const rows = db
     .prepare(`
       SELECT l.*, u.name AS owner_name, u.username AS owner_username
       FROM lectures l JOIN users u ON u.id = l.user_id
+      ${showDeleted ? 'WHERE l.deleted_at IS NOT NULL' : 'WHERE l.deleted_at IS NULL'}
       ORDER BY l.created_at DESC
     `)
     .all();
@@ -199,17 +203,26 @@ router.post('/:id/retry', (req, res) => {
   res.json({ ok: true, id: lec.id, jobId, status: 'queued', message: 'أُعيدت جدولة التحليل' });
 });
 
-// حذف المحاضرة من المكتبة المشتركة: صلاحية المدير فقط
+// حذف المحاضرة من المكتبة المشتركة: صلاحية المدير فقط.
+// حذف ناعم: تُعلَّم المحاضرة محذوفة ويبقى الملف والأسئلة في القاعدة، ويمكن استرجاعها
 router.delete('/:id', (req, res) => {
   if (!req.user.isAdmin) return res.status(403).json({ error: 'غير مسموح — صلاحية المدير مطلوبة للحذف من المكتبة' });
   const lec = db.prepare('SELECT * FROM lectures WHERE id = ?').get(req.params.id);
   if (!lec) return res.status(404).json({ error: 'غير موجود' });
-  unlinkStored(lec.file_path);
   deleteJobsForLecture(lec.user_id, lec.id);
   if (analysisProgress.has(lec.user_id) && analysisProgress.get(lec.user_id).lectureId === lec.id) {
     analysisProgress.delete(lec.user_id);
   }
-  db.prepare('DELETE FROM lectures WHERE id = ?').run(req.params.id);
+  db.prepare(`UPDATE lectures SET deleted_at = datetime('now') WHERE id = ?`).run(req.params.id);
+  res.json({ ok: true, soft: true });
+});
+
+// استرجاع محاضرة من سلة المحذوفات: صلاحية المدير فقط
+router.post('/:id/restore', (req, res) => {
+  if (!req.user.isAdmin) return res.status(403).json({ error: 'غير مسموح — صلاحية المدير مطلوبة للاسترجاع' });
+  const lec = db.prepare('SELECT * FROM lectures WHERE id = ?').get(req.params.id);
+  if (!lec) return res.status(404).json({ error: 'غير موجود' });
+  db.prepare(`UPDATE lectures SET deleted_at = NULL WHERE id = ?`).run(req.params.id);
   res.json({ ok: true });
 });
 

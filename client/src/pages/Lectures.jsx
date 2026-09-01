@@ -19,6 +19,7 @@ export default function Lectures() {
   const { user } = useAuth();
   const [lectures, setLectures] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showDeleted, setShowDeleted] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [files, setFiles] = useState([]);
   const [title, setTitle] = useState('');
@@ -43,7 +44,7 @@ export default function Lectures() {
   const targetRef = useRef(null);
   const tickRef = useRef(null);
 
-  const load = () => api.get('/lectures').then(setLectures).finally(() => setLoading(false));
+  const load = () => api.get('/lectures' + (showDeleted && user?.role === 'admin' ? '?deleted=1' : '')).then(setLectures).finally(() => setLoading(false));
 
   const stopPoll = () => {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
@@ -239,8 +240,14 @@ export default function Lectures() {
   const stageIndex = procStage ? (STAGE_RANK[procStage] || 0) : 0;
 
   const remove = async (id) => {
-    if (!confirm('هل أنت متأكد من حذف هذه المحاضرة؟')) return;
+    if (!confirm('هل أنت متأكد من حذف هذه المحاضرة؟ لن تُمسح نهائيًا ويمكن استرجاعها من سلة المحذوفات.')) return;
     await api.del('/lectures/' + id);
+    load();
+  };
+
+  const restore = async (id) => {
+    if (!confirm('هل تريد استرجاع هذه المحاضرة إلى المكتبة؟')) return;
+    await api.post('/lectures/' + id + '/restore', {});
     load();
   };
 
@@ -364,8 +371,16 @@ export default function Lectures() {
 
       {/* قائمة المحاضرات */}
       <div>
-        <h2 className="font-bold text-main mb-1">المكتبة المشتركة للمحاضرات ({lectures.length})</h2>
-        <p className="text-xs text-muted mb-3">كل المحاضرات متاحة لجميع المستخدمين. يحذف المحاضرات المدير فقط من هذه القائمة.</p>
+        <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+          <h2 className="font-bold text-main">المكتبة المشتركة للمحاضرات ({lectures.length})</h2>
+          {user?.role === 'admin' && (
+            <Button variant={showDeleted ? 'primary' : 'ghost'} onClick={() => { setShowDeleted((s) => !s); }} className="text-xs px-3 py-1.5">
+              <Icon name="trash" className="w-4 h-4" />
+              {showDeleted ? 'عرض المكتبة' : 'سلة المحذوفات'}
+            </Button>
+          )}
+        </div>
+        <p className="text-xs text-muted mb-3">{showDeleted ? 'المحاضرات المحذوفة محفوظة ويمكن استرجاعها — الحذف ناعم ولا يمسح الملف من الخادم نهائيًا.' : 'كل المحاضرات متاحة لجميع المستخدمين. يحذف المحاضرات المدير فقط من هذه القائمة.'}</p>
         {loading ? (
           <div className="flex justify-center py-10"><Spinner className="w-8 h-8 text-brand-600" /></div>
         ) : lectures.length ? (
@@ -383,9 +398,15 @@ export default function Lectures() {
                     </div>
                   </div>
                   {user?.role === 'admin' && (
-                    <button onClick={() => remove(l.id)} className="text-muted hover:text-red-500 shrink-0" title="حذف (مدير)">
-                      <Icon name="trash" className="w-5 h-5" />
-                    </button>
+                    showDeleted ? (
+                      <button onClick={() => restore(l.id)} className="text-brand-600 hover:text-brand-700 shrink-0" title="استرجاع المحاضرة">
+                        <Icon name="refresh" className="w-5 h-5" />
+                      </button>
+                    ) : (
+                      <button onClick={() => remove(l.id)} className="text-muted hover:text-red-500 shrink-0" title="حذف (مدير)">
+                        <Icon name="trash" className="w-5 h-5" />
+                      </button>
+                    )
                   )}
                 </div>
                 <div className="mt-3 flex items-center gap-2 flex-wrap">

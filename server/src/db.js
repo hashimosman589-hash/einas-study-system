@@ -6,6 +6,12 @@ const db = new DatabaseSync(path.join(dataDir, 'einas.db'));
 db.exec('PRAGMA journal_mode = WAL;');
 db.exec('PRAGMA foreign_keys = ON;');
 
+// هجرة خفيفة: عمود deleted_at للاحتفاظ بالمحاضرات المحذوفة (حذف ناعم قابل للاسترجاع)
+const lecCols = db.prepare("PRAGMA table_info(lectures)").all();
+if (!lecCols.some((c) => c.name === 'deleted_at')) {
+  db.exec('ALTER TABLE lectures ADD COLUMN deleted_at TEXT');
+}
+
 db.exec(`
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
