@@ -631,9 +631,15 @@ export async function runAnalysisPipeline(content, lectureTitle, onStage = null,
     merged.needsVerification.push(...(Array.isArray(graphInfo.needsVerification) ? graphInfo.needsVerification : []));
     merged.questions.push(...(Array.isArray(validated) ? validated : []));
 
-    if (readInfo.unreadablePart) merged.unreadable.push(`الجزء ${chunk.index + 1}: ${String(readInfo.unreadablePart).slice(0, 200)}`);
+    if (readInfo.unreadablePart) {
+      const lbl = contentLang === 'ar' ? 'الجزء' : 'chunk';
+      merged.unreadable.push(`${lbl} ${chunk.index + 1}: ${String(readInfo.unreadablePart).slice(0, 200)}`);
+    }
     const readNote = readInfo.readingNote || 'READ_FULL';
-    if (readNote !== 'READ_FULL') readingNotes.push(`الجزء ${chunk.index + 1}: ${readNote}`);
+    if (readNote !== 'READ_FULL') {
+      const lbl = contentLang === 'ar' ? 'الجزء' : 'chunk';
+      readingNotes.push(`${lbl} ${chunk.index + 1}: ${readNote}`);
+    }
   }
 
   // إزالة التكرار بين الأجزاء (مفاهيم/علاقات/أسئلة) قبل الدمج
@@ -645,12 +651,20 @@ export async function runAnalysisPipeline(content, lectureTitle, onStage = null,
   merged.needsVerification = mergeUnique(merged.needsVerification);
   merged.embeddedQA = mergeUnique(merged.embeddedQA, (q) => normKey(q.question));
 
-  // ملاحظة القراءة الشاملة (شفافية كاملة: لا إعلان اكتمال إلا بعد القراءة)
-  merged.fullReading = chunks.length === 1
-    ? 'READ_COMPLETE: تمت قراءة الملف كاملًا في مسار واحد'
-    : `READ_COMPLETE: تمت قراءة الملف كاملًا عبر ${chunks.length} أجزاء متتابعة بلا اقتطاع`;
-  if (merged.unreadable.length) merged.fullReading += ' | تحتاج إعادة معالجة: ' + merged.unreadable.join('; ');
-  if (chunkFailures.length) merged.fullReading += ' | أجزاء فشلت مؤقتًا واستُجيب بنتائج الباقي: ' + chunkFailures.map((f) => `جزء ${f.index}`).join('، ');
+  // ملاحظة القراءة الشاملة (شفافية كاملة: لا إعلان اكتمال إلا بعد القراءة) — بلغة الملف المصدر
+  if (contentLang === 'ar') {
+    merged.fullReading = chunks.length === 1
+      ? 'قراءة الملف كاملًا في مسار واحد (READ_COMPLETE)'
+      : `قراءة الملف كاملًا عبر ${chunks.length} أجزاء متتابعة بلا اقتطاع (READ_COMPLETE)`;
+    if (merged.unreadable.length) merged.fullReading += ' | تحتاج إعادة معالجة: ' + merged.unreadable.join('; ');
+    if (chunkFailures.length) merged.fullReading += ' | أجزاء فشلت مؤقتًا واستُجيب بنتائج الباقي: ' + chunkFailures.map((f) => `جزء ${f.index}`).join('، ');
+  } else {
+    merged.fullReading = chunks.length === 1
+      ? 'Entire file read in a single pass (READ_COMPLETE)'
+      : `Entire file read across ${chunks.length} sequential chunks with no truncation (READ_COMPLETE)`;
+    if (merged.unreadable.length) merged.fullReading += ' | Needs reprocessing: ' + merged.unreadable.join('; ');
+    if (chunkFailures.length) merged.fullReading += ' | Chunks temporarily failed, answered with the rest: ' + chunkFailures.map((f) => `chunk ${f.index}`).join(', ');
+  }
 
   // المرحلة D: الملخص الذكي الموحّد
   emit(86, 'بناء الملخص عالي العائد');

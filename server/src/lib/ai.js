@@ -273,7 +273,11 @@ export async function analyzeLecture(content, lectureTitle, onStage = null) {
   if (!AI_API_KEY) return fallback();
 
   const finalize = (result) => {
-    result.summary = (result.summary || '') + '\n\n' + (result.reading ? '**نطاق القراءة:** ' + result.reading : '');
+    // ملاحظة نطاق القراءة بلغة المخرج (عربي/إنجليزي) — لا خلط بين اللغتين
+    if (result.reading) {
+      const readingIsAr = /[\u0600-\u06FF]/.test(String(result.reading));
+      result.summary = (result.summary || '') + '\n\n' + (readingIsAr ? '**نطاق القراءة:** ' : '**Reading scope:** ') + result.reading;
+    }
     result.questions = sanitizeQuestions(result.questions || []).slice(0, 140);
     result.questionCount = result.questions.length;
     result.qaCount = result.questions.filter((q) => q.type === 'qa').length;
